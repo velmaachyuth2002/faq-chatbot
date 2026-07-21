@@ -1,0 +1,32 @@
+name: Tests
+
+# Run this workflow on every push to main, and on every pull request
+# targeting main — so problems get caught before they reach the deployed
+# app on Render.
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install dependencies
+        working-directory: faq_chatbot
+        run: |
+          pip install --extra-index-url https://download.pytorch.org/whl/cpu -r requirements-dev.txt
+
+      - name: Run tests
+        working-directory: faq_chatbot
+        run: pytest -v
