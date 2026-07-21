@@ -161,6 +161,15 @@
         // arrives.
         let typingIndicatorEl = null;
 
+        // Holds every turn of the conversation so far, in the same
+        // {role, content} shape the Claude API itself uses. This lives
+        // only in the browser's memory — refreshing the page clears it,
+        // same as our CLI chatbot's conversation_history did. We send
+        // this whole list on every request, since the API has no memory
+        // of its own; that's what lets the bot understand follow-up
+        // questions like "how long is that warranty?".
+        let conversationHistory = [];
+
         function addMessage(text, sender) {
             const messageDiv = document.createElement("div");
             messageDiv.className = `message ${sender}`;
@@ -221,7 +230,10 @@
                 const response = await fetch(API_URL, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ question: question }),
+                    body: JSON.stringify({
+                        question: question,
+                        history: conversationHistory,
+                    }),
                 });
 
                 if (!response.ok) {
@@ -231,6 +243,11 @@
                 const data = await response.json();
                 removeTypingIndicator();
                 addMessage(data.answer, "bot");
+
+                // Record both sides of this exchange so the NEXT question
+                // includes this one as context.
+                conversationHistory.push({ role: "user", content: question });
+                conversationHistory.push({ role: "assistant", content: data.answer });
             } catch (error) {
                 removeTypingIndicator();
                 addMessage("Sorry, something went wrong: " + error.message, "bot");

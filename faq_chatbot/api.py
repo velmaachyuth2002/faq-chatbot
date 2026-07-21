@@ -14,6 +14,7 @@ not just a raw API other developers would call.
 """
 
 from pathlib import Path
+from typing import List
 
 import anthropic
 from fastapi import FastAPI
@@ -61,13 +62,32 @@ app.add_middleware(
 )
 
 
+class Message(BaseModel):
+    """
+    One turn of a conversation, matching the shape Claude's API itself
+    uses: who said it ("user" or "assistant") and what they said.
+    """
+
+    role: str
+    content: str
+
+
 class AskRequest(BaseModel):
     """
     Defines the shape of the JSON body we expect on POST /ask.
     FastAPI uses this to validate incoming requests automatically.
+
+    question: the newest thing the user just asked.
+    history: every prior turn of this conversation, oldest first. The
+    API itself has no memory of its own — the caller (our frontend) is
+    responsible for keeping track of the conversation and sending it
+    back on every request. Defaults to empty for a brand-new
+    conversation, so existing callers that only send "question" still
+    work unchanged.
     """
 
     question: str
+    history: List[Message] = []
 
 
 class AskResponse(BaseModel):
@@ -89,10 +109,16 @@ def serve_frontend() -> FileResponse:
 
 @app.post("/ask")
 def ask(request: AskRequest) -> AskResponse:
+    # Retrieval still only looks at the newest question, not the full
+    # conversation — the same simplification we made back when we first
+    # added conversation memory to the CLI chatbot.
     relevant_faqs = retrieve_relevant_faqs(
         embedder, request.question, questions, question_embeddings, faqs
     )
     system_prompt = build_system_prompt(relevant_faqs)
-    messages = [{"role": "user", "content": request.question}]
+
+    messages = [{"role": m.role, "content": m.content} for m in request.history]
+    messages.append({"role": "user", "content": request.question})
+
     answer = ask_claude(client, system_prompt, messages)
     return AskResponse(answer=answer)
