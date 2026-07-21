@@ -16,7 +16,10 @@ import numpy as np
 FAQS_FILE = Path(__file__).parent / "faqs.json"
 
 # Which Claude model to use for generating answers.
-MODEL = "claude-opus-4-8"
+# Haiku is Anthropic's fastest, cheapest model ($1/$5 per 1M tokens vs Opus's
+# $5/$25). For an FAQ bot that only answers short questions from text we
+# provide, Haiku is a great fit and cuts the cost per question by ~5x.
+MODEL = "claude-haiku-4-5"
 
 # Which local embedding model to use for retrieval.
 EMBEDDING_MODEL_NAME = "all-MiniLM-L6-v2"

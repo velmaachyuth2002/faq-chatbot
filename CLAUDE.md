@@ -50,4 +50,7 @@ PROJECT MILESTONES:
 9. Dockerize the app
 10. Deploy to a cloud host with a public URL
 
-Current milestone: Milestone 1 — Plain Python chatbot
+Current milestone: All 10 milestones complete — Milestones 1-10 built
+(CLI chatbot, JSON FAQs, Claude API, prompt engineering, embedding
+retrieval, FastAPI backend, conversation memory, frontend, Docker,
+deployment).
