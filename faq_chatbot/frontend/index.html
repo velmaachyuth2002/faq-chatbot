@@ -79,9 +79,12 @@
     </div>
 
     <script>
-        // Where our FastAPI backend is running. Change this if you run
-        // uvicorn on a different host or port.
-        const API_URL = "https://faq-chatbot-s7fy.onrender.com/ask";
+        // A relative path instead of a full URL — since this page is now
+        // served BY the same FastAPI server that hosts /ask, "/ask" always
+        // means "the /ask endpoint on whatever host served this page."
+        // That means this exact file works unchanged whether it's served
+        // locally (http://127.0.0.1:8000) or on Render, with no editing.
+        const API_URL = "/ask";
 
         const chatLog = document.getElementById("chat-log");
         const questionInput = document.getElementById("question-input");

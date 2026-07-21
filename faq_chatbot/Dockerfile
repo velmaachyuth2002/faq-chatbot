@@ -22,8 +22,10 @@ RUN pip install --no-cache-dir \
     --extra-index-url https://download.pytorch.org/whl/cpu \
     -r requirements.txt
 
-# Now copy the actual application code and data into the image.
+# Now copy the actual application code and data into the image. This
+# includes frontend/, since api.py now serves that HTML page directly.
 COPY faq_engine.py api.py faqs.json ./
+COPY frontend/ ./frontend/
 
 # Documents that this container listens on port 8000. This line is
 # informational — it doesn't actually publish the port (that happens

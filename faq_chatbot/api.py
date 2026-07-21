@@ -7,11 +7,18 @@ of needing to run our Python code directly.
 Milestone 8 update: added CORS support so the browser-based frontend
 (frontend/index.html) is allowed to call this API from a page opened
 directly from disk.
+
+Later update: this server now also serves the frontend page itself at
+"/", so the one deployed URL works as a complete, shareable chat page —
+not just a raw API other developers would call.
 """
+
+from pathlib import Path
 
 import anthropic
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from sentence_transformers import SentenceTransformer
 
@@ -32,6 +39,9 @@ faqs = load_faqs()
 embedder = SentenceTransformer(EMBEDDING_MODEL_NAME)
 questions, question_embeddings = embed_faqs(embedder, faqs)
 client = anthropic.Anthropic()
+
+# Path to the frontend HTML file, so we can serve it directly.
+FRONTEND_FILE = Path(__file__).parent / "frontend" / "index.html"
 
 app = FastAPI()
 
@@ -66,6 +76,15 @@ class AskResponse(BaseModel):
     """
 
     answer: str
+
+
+@app.get("/")
+def serve_frontend() -> FileResponse:
+    """
+    Serves the chat page itself, so visiting this server's URL directly
+    in a browser shows a real chat interface instead of a 404.
+    """
+    return FileResponse(FRONTEND_FILE)
 
 
 @app.post("/ask")
