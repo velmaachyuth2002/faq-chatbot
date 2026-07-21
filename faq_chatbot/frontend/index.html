@@ -44,6 +44,59 @@
         max-width: 80%;
         line-height: 1.4;
     }
+    #quick-replies {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .quick-reply-btn {
+        background-color: white;
+        border: 1px solid #007aff;
+        color: #007aff;
+        border-radius: 16px;
+        padding: 6px 14px;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .quick-reply-btn:hover {
+        background-color: #007aff;
+        color: white;
+    }
+    .quick-reply-btn:disabled {
+        border-color: #999;
+        color: #999;
+        cursor: not-allowed;
+    }
+    /* Three dots that pulse one after another, to look like a typing
+       indicator instead of a plain "loading" word. */
+    .typing-dots {
+        display: inline-flex;
+        gap: 4px;
+    }
+    .typing-dots span {
+        width: 6px;
+        height: 6px;
+        background-color: #888;
+        border-radius: 50%;
+        animation: typing-bounce 1.4s infinite ease-in-out both;
+    }
+    .typing-dots span:nth-child(1) {
+        animation-delay: -0.32s;
+    }
+    .typing-dots span:nth-child(2) {
+        animation-delay: -0.16s;
+    }
+    @keyframes typing-bounce {
+        0%, 80%, 100% {
+            transform: scale(0.6);
+            opacity: 0.4;
+        }
+        40% {
+            transform: scale(1);
+            opacity: 1;
+        }
+    }
     #input-row {
         display: flex;
         gap: 8px;
@@ -73,6 +126,7 @@
 <body>
     <h1>FAQ Chatbot</h1>
     <div id="chat-log"></div>
+    <div id="quick-replies"></div>
     <div id="input-row">
         <input type="text" id="question-input" placeholder="Ask a question..." autocomplete="off">
         <button id="ask-button">Ask</button>
@@ -86,9 +140,26 @@
         // locally (http://127.0.0.1:8000) or on Render, with no editing.
         const API_URL = "/ask";
 
+        // A handful of our actual FAQ questions, shown as clickable
+        // buttons so visitors can see what the bot can answer instead of
+        // guessing what to type.
+        const QUICK_REPLIES = [
+            "What are your business hours?",
+            "What is your return policy?",
+            "How long does shipping take?",
+            "What is your warranty policy?",
+            "How can I contact support?",
+        ];
+
         const chatLog = document.getElementById("chat-log");
+        const quickRepliesContainer = document.getElementById("quick-replies");
         const questionInput = document.getElementById("question-input");
         const askButton = document.getElementById("ask-button");
+
+        // Tracks the typing-indicator bubble currently on screen (if any),
+        // so we can remove exactly that one element once the real answer
+        // arrives.
+        let typingIndicatorEl = null;
 
         function addMessage(text, sender) {
             const messageDiv = document.createElement("div");
@@ -105,15 +176,46 @@
             chatLog.scrollTop = chatLog.scrollHeight;
         }
 
-        async function askQuestion() {
-            const question = questionInput.value.trim();
+        function showTypingIndicator() {
+            const messageDiv = document.createElement("div");
+            messageDiv.className = "message bot";
+
+            const bubble = document.createElement("span");
+            bubble.className = "bubble";
+            bubble.innerHTML =
+                '<span class="typing-dots"><span></span><span></span><span></span></span>';
+
+            messageDiv.appendChild(bubble);
+            chatLog.appendChild(messageDiv);
+            chatLog.scrollTop = chatLog.scrollHeight;
+
+            typingIndicatorEl = messageDiv;
+        }
+
+        function removeTypingIndicator() {
+            if (typingIndicatorEl) {
+                typingIndicatorEl.remove();
+                typingIndicatorEl = null;
+            }
+        }
+
+        function setControlsDisabled(disabled) {
+            askButton.disabled = disabled;
+            for (const button of quickRepliesContainer.children) {
+                button.disabled = disabled;
+            }
+        }
+
+        async function askQuestion(question) {
+            question = (question ?? questionInput.value).trim();
             if (question === "") {
                 return;
             }
 
             addMessage(question, "user");
             questionInput.value = "";
-            askButton.disabled = true;
+            setControlsDisabled(true);
+            showTypingIndicator();
 
             try {
                 const response = await fetch(API_URL, {
@@ -127,16 +229,29 @@
                 }
 
                 const data = await response.json();
+                removeTypingIndicator();
                 addMessage(data.answer, "bot");
             } catch (error) {
+                removeTypingIndicator();
                 addMessage("Sorry, something went wrong: " + error.message, "bot");
             } finally {
-                askButton.disabled = false;
+                setControlsDisabled(false);
                 questionInput.focus();
             }
         }
 
-        askButton.addEventListener("click", askQuestion);
+        // Build one button per quick-reply question. Clicking a button
+        // asks that question immediately, the same as typing it and
+        // pressing Enter.
+        for (const questionText of QUICK_REPLIES) {
+            const button = document.createElement("button");
+            button.className = "quick-reply-btn";
+            button.textContent = questionText;
+            button.addEventListener("click", () => askQuestion(questionText));
+            quickRepliesContainer.appendChild(button);
+        }
+
+        askButton.addEventListener("click", () => askQuestion());
 
         questionInput.addEventListener("keydown", (event) => {
             if (event.key === "Enter") {
