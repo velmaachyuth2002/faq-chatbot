@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>FAQ Chatbot</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        max-width: 600px;
+        margin: 40px auto;
+        padding: 0 20px;
+        background-color: #f5f5f5;
+    }
+    h1 {
+        text-align: center;
+    }
+    #chat-log {
+        background: white;
+        border: 1px solid #ddd;
+        border-radius: 8px;
+        padding: 16px;
+        height: 400px;
+        overflow-y: auto;
+        margin-bottom: 16px;
+    }
+    .message {
+        margin-bottom: 12px;
+    }
+    .message.user {
+        text-align: right;
+    }
+    .message.user .bubble {
+        background-color: #007aff;
+        color: white;
+    }
+    .message.bot .bubble {
+        background-color: #e5e5ea;
+        color: black;
+    }
+    .bubble {
+        display: inline-block;
+        padding: 8px 12px;
+        border-radius: 12px;
+        max-width: 80%;
+        line-height: 1.4;
+    }
+    #input-row {
+        display: flex;
+        gap: 8px;
+    }
+    #question-input {
+        flex: 1;
+        padding: 10px;
+        font-size: 16px;
+        border: 1px solid #ccc;
+        border-radius: 6px;
+    }
+    #ask-button {
+        padding: 10px 20px;
+        font-size: 16px;
+        border: none;
+        border-radius: 6px;
+        background-color: #007aff;
+        color: white;
+        cursor: pointer;
+    }
+    #ask-button:disabled {
+        background-color: #999;
+        cursor: not-allowed;
+    }
+</style>
+</head>
+<body>
+    <h1>FAQ Chatbot</h1>
+    <div id="chat-log"></div>
+    <div id="input-row">
+        <input type="text" id="question-input" placeholder="Ask a question..." autocomplete="off">
+        <button id="ask-button">Ask</button>
+    </div>
+
+    <script>
+        // Where our FastAPI backend is running. Change this if you run
+        // uvicorn on a different host or port.
+        const API_URL = "http://127.0.0.1:8000/ask";
+
+        const chatLog = document.getElementById("chat-log");
+        const questionInput = document.getElementById("question-input");
+        const askButton = document.getElementById("ask-button");
+
+        function addMessage(text, sender) {
+            const messageDiv = document.createElement("div");
+            messageDiv.className = `message ${sender}`;
+
+            const bubble = document.createElement("span");
+            bubble.className = "bubble";
+            bubble.textContent = text;
+
+            messageDiv.appendChild(bubble);
+            chatLog.appendChild(messageDiv);
+
+            // Scroll the chat log down to the newest message.
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+
+        async function askQuestion() {
+            const question = questionInput.value.trim();
+            if (question === "") {
+                return;
+            }
+
+            addMessage(question, "user");
+            questionInput.value = "";
+            askButton.disabled = true;
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ question: question }),
+                });
+
+                if (!response.ok) {
+                    throw new Error(`Server responded with status ${response.status}`);
+                }
+
+                const data = await response.json();
+                addMessage(data.answer, "bot");
+            } catch (error) {
+                addMessage("Sorry, something went wrong: " + error.message, "bot");
+            } finally {
+                askButton.disabled = false;
+                questionInput.focus();
+            }
+        }
+
+        askButton.addEventListener("click", askQuestion);
+
+        questionInput.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                askQuestion();
+            }
+        });
+    </script>
+</body>
+</html>

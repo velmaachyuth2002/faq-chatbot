@@ -1,0 +1,12 @@
+# Python
+__pycache__/
+*.pyc
+
+# Never commit secrets. We only ever set ANTHROPIC_API_KEY as an
+# environment variable (in your shell, or in Render's dashboard) —
+# never in a file — but this is a safety net in case a .env file
+# ever gets created later.
+.env
+
+# macOS
+.DS_Store
